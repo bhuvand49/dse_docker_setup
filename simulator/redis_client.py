@@ -2,18 +2,14 @@ import os
 import time
 import redis
 
-# ---------------------------------
-# CLOUD REDIS URL (Upstash / Render / Local)
-# ---------------------------------
-REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379")
+REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379").strip().strip('"').strip("'")
 
-# ---------------------------------
-# Try Redis Connection
-# ---------------------------------
 try:
     redis_client = redis.Redis.from_url(
         REDIS_URL,
-        decode_responses=True
+        decode_responses=True,
+        socket_connect_timeout=5,
+        socket_timeout=5,
     )
     redis_client.ping()
     print("[OK] Connected to Redis")
@@ -23,9 +19,6 @@ except Exception as e:
     print("[ERROR] Redis connection failed:", e)
     print("[INFO] Using in-memory fallback")
 
-    # ---------------------------------
-    # In-Memory Fallback
-    # ---------------------------------
     class InMemoryRedis:
         def __init__(self):
             self.data = {}
@@ -33,22 +26,26 @@ except Exception as e:
 
         def _cleanup(self):
             now = time.time()
-            expired = [
-                key for key, exp in self.expiry.items()
-                if now > exp
-            ]
-            for key in expired:
-                self.data.pop(key, None)
-                self.expiry.pop(key, None)
+            expired = [k for k, v in self.expiry.items() if now > v]
+            for k in expired:
+                self.data.pop(k, None)
+                self.expiry.pop(k, None)
 
         def hset(self, key, mapping=None, **kwargs):
             self._cleanup()
-            self.data[key] = dict(mapping or kwargs)
+            if key not in self.data:
+                self.data[key] = {}
+            payload = dict(mapping or kwargs)
+            self.data[key].update(payload)
             return 1
 
         def hgetall(self, key):
             self._cleanup()
             return self.data.get(key, {})
+
+        def hget(self, key, field):
+            self._cleanup()
+            return self.data.get(key, {}).get(field)
 
         def expire(self, key, seconds):
             self.expiry[key] = time.time() + seconds
@@ -65,10 +62,7 @@ except Exception as e:
                 return list(self.data.keys())
 
             prefix = pattern.replace("*", "")
-            return [
-                k for k in self.data.keys()
-                if k.startswith(prefix)
-            ]
+            return [k for k in self.data if k.startswith(prefix)]
 
         def scan_iter(self, pattern="*"):
             for k in self.keys(pattern):

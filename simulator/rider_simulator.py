@@ -10,9 +10,10 @@ from simulator.utils import generate_random_location
 from simulator.geofence import get_zone
 from simulator.redis_client import redis_client
 
-print("[INFO] Rider simulation started...")
 
-try:
+def run_rider_simulator():
+    print("[INFO] Rider simulator started...")
+
     while True:
         rider_id = str(uuid.uuid4())
         lat, lon = generate_random_location()
@@ -31,5 +32,6 @@ try:
 
         time.sleep(3)
 
-except KeyboardInterrupt:
-    print("[STOP] Rider simulator stopped.")
+
+if __name__ == "__main__":
+    run_rider_simulator()

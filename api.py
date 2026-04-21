@@ -7,6 +7,11 @@ import h3
 import subprocess
 import sys
 import os
+import threading
+
+from simulator.driver_simulator import run_driver_simulator
+from simulator.rider_simulator import run_rider_simulator
+from surge_engine import run as run_surge_engine
 
 app = FastAPI()
 
@@ -22,11 +27,10 @@ def run_script(path):
 
 @app.on_event("startup")
 def startup_jobs():
-    base = os.path.dirname(os.path.abspath(__file__))
-
-    run_script(os.path.join(base, "simulator", "driver_simulator.py"))
-    run_script(os.path.join(base, "simulator", "rider_simulator.py"))
-    run_script(os.path.join(base, "surge_engine.py"))
+    threading.Thread(target=run_driver_simulator, daemon=True).start()
+    threading.Thread(target=run_rider_simulator, daemon=True).start()
+    threading.Thread(target=run_surge_engine, daemon=True).start()
+    print("[OK] All background jobs started")
 
 # ---------------------------------
 # CORS

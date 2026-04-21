@@ -10,16 +10,17 @@ from simulator.utils import generate_random_location, move_driver
 from simulator.geofence import get_zone
 from simulator.redis_client import redis_client
 
-drivers = {}
 
-for _ in range(300):
-    driver_id = str(uuid.uuid4())
-    lat, lon = generate_random_location()
-    drivers[driver_id] = {"lat": lat, "lon": lon}
+def run_driver_simulator():
+    drivers = {}
 
-print("[INFO] Driver simulation started...")
+    for _ in range(300):
+        driver_id = str(uuid.uuid4())
+        lat, lon = generate_random_location()
+        drivers[driver_id] = {"lat": lat, "lon": lon}
 
-try:
+    print("[INFO] Driver simulator started...")
+
     while True:
         for driver_id in drivers:
             lat = drivers[driver_id]["lat"]
@@ -44,5 +45,6 @@ try:
 
         time.sleep(2)
 
-except KeyboardInterrupt:
-    print("[STOP] Driver simulator stopped.")
+
+if __name__ == "__main__":
+    run_driver_simulator()

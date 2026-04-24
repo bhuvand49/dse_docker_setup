@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -45,19 +45,34 @@ export default function App() {
     avg: 1
   });
 
-  useEffect(() => {
-    loadAll();
+  const buildAlerts = useCallback((data, sc, high) => {
+    const top = [...data].sort(
+      (a, b) =>
+        Number(b.surge_multiplier) -
+        Number(a.surge_multiplier)
+    )[0];
 
-    const timer1 = setInterval(loadAll, 4000);
-    const timer2 = setInterval(() => setNow(new Date()), 1000);
-
-    return () => {
-      clearInterval(timer1);
-      clearInterval(timer2);
-    };
+    setAlerts([
+      {
+        type: "danger",
+        text: `Highest surge: ${top?.area || "N/A"} (${top?.surge_multiplier || 1}x)`
+      },
+      {
+        type: "info",
+        text: `${high} high-demand zones active`
+      },
+      {
+        type: sc.rain ? "warning" : "success",
+        text: sc.rain ? "Rain mode enabled" : "Weather stable"
+      },
+      {
+        type: sc.event ? "warning" : "success",
+        text: sc.event ? "Event spike active" : "No event hotspots"
+      }
+    ]);
   }, []);
 
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
     try {
       const [res1, res2] = await Promise.all([
         fetch(`${API}/surge/all`),
@@ -108,38 +123,22 @@ export default function App() {
       ]);
 
       buildAlerts(safe, sc, high);
-
     } catch (e) {
       console.log("Load error:", e);
     }
-  }
+  }, [buildAlerts]);
 
-  function buildAlerts(data, sc, high) {
-    const top = [...data].sort(
-      (a, b) =>
-        Number(b.surge_multiplier) -
-        Number(a.surge_multiplier)
-    )[0];
+  useEffect(() => {
+    loadAll();
 
-    setAlerts([
-      {
-        type: "danger",
-        text: `Highest surge: ${top?.area || "N/A"} (${top?.surge_multiplier || 1}x)`
-      },
-      {
-        type: "info",
-        text: `${high} high-demand zones active`
-      },
-      {
-        type: sc.rain ? "warning" : "success",
-        text: sc.rain ? "Rain mode enabled" : "Weather stable"
-      },
-      {
-        type: sc.event ? "warning" : "success",
-        text: sc.event ? "Event spike active" : "No event hotspots"
-      }
-    ]);
-  }
+    const timer1 = setInterval(loadAll, 4000);
+    const timer2 = setInterval(() => setNow(new Date()), 1000);
+
+    return () => {
+      clearInterval(timer1);
+      clearInterval(timer2);
+    };
+  }, [loadAll]);
 
   async function updateScenario(key, value) {
     try {
@@ -155,7 +154,6 @@ export default function App() {
 
       setScenario(body);
       setTimeout(loadAll, 300);
-
     } catch (e) {
       console.log("Scenario update error:", e);
     }
@@ -198,9 +196,7 @@ export default function App() {
       </section>
 
       <section className="main-grid">
-
         <div className="left-col">
-
           <div className="glass panel">
             <div className="panel-title">🗺 Live Map</div>
             <iframe
@@ -237,7 +233,6 @@ export default function App() {
         </div>
 
         <div className="right-col">
-
           <div className="glass panel">
             <div className="panel-title">⚙ Controls</div>
 

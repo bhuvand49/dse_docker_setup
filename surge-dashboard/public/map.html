@@ -30,7 +30,9 @@ html, body {
 <div id="map"></div>
 
 <script>
-const API = "https://dynamic-surge-pricing-engine-backend.onrender.com";
+const API =
+  new URLSearchParams(location.search).get("api") ||
+  "https://dynamic-surge-pricing-engine-backend.onrender.com";
 
 const map = L.map("map", { zoomControl: true })
   .setView([12.9716, 77.5946], 11);
@@ -77,7 +79,7 @@ async function refreshMap(){
         const layer = L.polygon(poly, {
           color: zoneColor(item.surge_multiplier),
           fillColor: zoneColor(item.surge_multiplier),
-          fillOpacity: 0.30,
+          fillOpacity: 0.28,
           weight: 1
         }).addTo(map);
 
@@ -87,7 +89,7 @@ async function refreshMap(){
 
     drivers.forEach(d => {
       const marker = L.circleMarker([d.lat, d.lon], {
-        radius: 3,
+        radius: 2.5,
         color: "#3b82f6",
         fillColor: "#3b82f6",
         fillOpacity: 0.85
@@ -98,7 +100,7 @@ async function refreshMap(){
 
     riders.forEach(r => {
       const marker = L.circleMarker([r.lat, r.lon], {
-        radius: 3,
+        radius: 2.5,
         color: "#a855f7",
         fillColor: "#a855f7",
         fillOpacity: 0.85
@@ -108,12 +110,12 @@ async function refreshMap(){
     });
 
   } catch(err){
-    console.log("Map load error", err);
+    console.log("Map error:", err);
   }
 }
 
 refreshMap();
-setInterval(refreshMap, 6000);
+setInterval(refreshMap, 8000);
 </script>
 </body>
 </html>

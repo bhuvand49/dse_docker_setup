@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback
+} from "react";
+
 import {
   ResponsiveContainer,
   AreaChart,
@@ -25,15 +31,16 @@ import "./App.css";
 
 const API =
   process.env.REACT_APP_API_URL ||
-  "https://dynamic-surge-api.onrender.com";
+  "https://dynamic-surge-pricing-engine-backend.onrender.com";
 
-const MAP_URL =
-  process.env.REACT_APP_MAP_URL ||
-  "/map.html?embed=1";
+const MAP_URL = `/map.html?embed=1&api=${encodeURIComponent(API)}`;
 
 export default function App() {
   const [regions, setRegions] = useState([]);
-  const [scenario, setScenario] = useState({ rain: 0, event: 0 });
+  const [scenario, setScenario] = useState({
+    rain: 0,
+    event: 0
+  });
   const [history, setHistory] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [now, setNow] = useState(new Date());
@@ -63,11 +70,15 @@ export default function App() {
       },
       {
         type: sc.rain ? "warning" : "success",
-        text: sc.rain ? "Rain mode enabled" : "Weather stable"
+        text: sc.rain
+          ? "Rain mode enabled"
+          : "Weather stable"
       },
       {
         type: sc.event ? "warning" : "success",
-        text: sc.event ? "Event spike active" : "No event hotspots"
+        text: sc.event
+          ? "Event spike active"
+          : "No event hotspots"
       }
     ]);
   }, []);
@@ -102,7 +113,9 @@ export default function App() {
         if (s >= 2) high++;
       });
 
-      const avg = safe.length ? total / safe.length : 1;
+      const avg = safe.length
+        ? total / safe.length
+        : 1;
 
       setStats({
         drivers,
@@ -115,14 +128,12 @@ export default function App() {
         ...prev.slice(-11),
         {
           time: new Date().toLocaleTimeString(),
-          surge: Math.max(
-            1,
-            +(avg + (Math.random() * 0.1 - 0.05)).toFixed(2)
-          )
+          surge: +avg.toFixed(2)
         }
       ]);
 
       buildAlerts(safe, sc, high);
+
     } catch (e) {
       console.log("Load error:", e);
     }
@@ -131,18 +142,24 @@ export default function App() {
   useEffect(() => {
     loadAll();
 
-    const timer1 = setInterval(loadAll, 4000);
-    const timer2 = setInterval(() => setNow(new Date()), 1000);
+    const t1 = setInterval(loadAll, 8000);
+    const t2 = setInterval(
+      () => setNow(new Date()),
+      1000
+    );
 
     return () => {
-      clearInterval(timer1);
-      clearInterval(timer2);
+      clearInterval(t1);
+      clearInterval(t2);
     };
   }, [loadAll]);
 
   async function updateScenario(key, value) {
     try {
-      const body = { ...scenario, [key]: value };
+      const body = {
+        ...scenario,
+        [key]: value
+      };
 
       await fetch(`${API}/scenario`, {
         method: "POST",
@@ -153,9 +170,10 @@ export default function App() {
       });
 
       setScenario(body);
-      setTimeout(loadAll, 300);
+      setTimeout(loadAll, 500);
+
     } catch (e) {
-      console.log("Scenario update error:", e);
+      console.log("Scenario error:", e);
     }
   }
 
@@ -173,7 +191,9 @@ export default function App() {
     <div className="app-shell">
       <header className="topbar glass">
         <div>
-          <div className="brand">🚀 Dynamic Surge Intelligence</div>
+          <div className="brand">
+            🚀 Dynamic Surge Intelligence
+          </div>
           <div className="sub">
             Real-time Pricing Control Center
           </div>
@@ -198,7 +218,10 @@ export default function App() {
       <section className="main-grid">
         <div className="left-col">
           <div className="glass panel">
-            <div className="panel-title">🗺 Live Map</div>
+            <div className="panel-title">
+              🗺 Live Map
+            </div>
+
             <iframe
               title="map"
               src={MAP_URL}
@@ -207,7 +230,9 @@ export default function App() {
           </div>
 
           <div className="glass panel">
-            <div className="panel-title">📈 Surge Trend</div>
+            <div className="panel-title">
+              📈 Surge Trend
+            </div>
 
             <div className="chart-wrap">
               {history.length ? (
@@ -226,7 +251,9 @@ export default function App() {
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="empty-state">Loading...</div>
+                <div className="empty-state">
+                  Loading...
+                </div>
               )}
             </div>
           </div>
@@ -234,11 +261,17 @@ export default function App() {
 
         <div className="right-col">
           <div className="glass panel">
-            <div className="panel-title">⚙ Controls</div>
+            <div className="panel-title">
+              ⚙ Controls
+            </div>
 
             <div className="control-row">
               <button
-                className={scenario.rain ? "btn active" : "btn"}
+                className={
+                  scenario.rain
+                    ? "btn active"
+                    : "btn"
+                }
                 onClick={() =>
                   updateScenario(
                     "rain",
@@ -270,7 +303,9 @@ export default function App() {
           </div>
 
           <div className="glass panel">
-            <div className="panel-title">🔔 AI Insights</div>
+            <div className="panel-title">
+              🔔 AI Insights
+            </div>
 
             <div className="alerts-wrap">
               {alerts.map((a, i) => (
@@ -286,7 +321,9 @@ export default function App() {
           </div>
 
           <div className="glass panel">
-            <div className="panel-title">🏆 Top Zones</div>
+            <div className="panel-title">
+              🏆 Top Zones
+            </div>
 
             <div className="chart-wrap tall">
               {topRegions.length ? (
@@ -312,7 +349,9 @@ export default function App() {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="empty-state">Loading...</div>
+                <div className="empty-state">
+                  Loading...
+                </div>
               )}
             </div>
           </div>
@@ -347,8 +386,12 @@ export default function App() {
                 </div>
 
                 <div className="mini">
-                  <span>Rule {r.rule_surge || 1}x</span>
-                  <span>ML {r.ml_surge || 1}x</span>
+                  <span>
+                    Rule {r.rule_surge || 1}x
+                  </span>
+                  <span>
+                    ML {r.ml_surge || 1}x
+                  </span>
                 </div>
 
                 {high && (
@@ -378,4 +421,4 @@ function KPI({ title, value, icon }) {
       </div>
     </div>
   );
-} 
+}

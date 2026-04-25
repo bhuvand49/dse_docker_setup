@@ -10,36 +10,39 @@ from simulator.utils import generate_random_location, move_driver
 from simulator.geofence import get_zone
 from simulator.redis_client import redis_client
 
-
-TARGET_DRIVERS = 900        # rich live map
-TICK_SECONDS = 1.5         # faster updates
-TTL_SECONDS = 90           # auto cleanup
+# Stable for Render free tier
+TARGET_DRIVERS = 300
+TICK_SECONDS = 3
+TTL_SECONDS = 90
 
 
 def seed_driver(drivers: dict):
     driver_id = str(uuid.uuid4())
     lat, lon = generate_random_location()
-    drivers[driver_id] = {"lat": lat, "lon": lon}
+    drivers[driver_id] = {
+        "lat": lat,
+        "lon": lon
+    }
 
 
 def run_driver_simulator():
     drivers = {}
-    print("[INFO] Premium driver simulator started")
+    print("[INFO] Driver simulator started")
 
-    # Initial seed
+    # Initial pool
     for _ in range(TARGET_DRIVERS):
         seed_driver(drivers)
 
     while True:
         try:
-            # maintain pool size
             while len(drivers) < TARGET_DRIVERS:
                 seed_driver(drivers)
 
-            # randomly retire a few drivers
-            if len(drivers) > 100 and time.time() % 10 < 1:
-                retire_count = min(8, len(drivers))
-                for did in list(drivers.keys())[:retire_count]:
+            # Occasionally retire some drivers
+            if len(drivers) > 100 and int(time.time()) % 15 == 0:
+                remove_count = min(5, len(drivers))
+
+                for did in list(drivers.keys())[:remove_count]:
                     drivers.pop(did, None)
                     redis_client.delete(f"driver:{did}")
 
@@ -62,12 +65,16 @@ def run_driver_simulator():
                         "timestamp": time.time()
                     }
                 )
-                redis_client.expire(f"driver:{did}", TTL_SECONDS)
+
+                redis_client.expire(
+                    f"driver:{did}",
+                    TTL_SECONDS
+                )
 
             time.sleep(TICK_SECONDS)
 
         except Exception as e:
-            print("Premium driver simulator error:", e)
+            print("Driver simulator error:", e)
             time.sleep(2)
 
 

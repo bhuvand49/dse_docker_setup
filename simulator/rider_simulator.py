@@ -11,36 +11,41 @@ from simulator.utils import generate_random_location
 from simulator.geofence import get_zone
 from simulator.redis_client import redis_client
 
-
-BASE_RIDERS_PER_TICK = 35
-TICK_SECONDS = 1.2
+# Optimized for Render + Redis free tier
+BASE_RIDERS_PER_TICK = 15
+TICK_SECONDS = 3
 TTL_SECONDS = 75
 
 
 def current_multiplier():
     hour = time.localtime().tm_hour
 
-    # Simulated rush hours
+    # Morning rush
     if 7 <= hour <= 10:
         return 1.6
+
+    # Evening rush
     if 17 <= hour <= 22:
         return 1.8
-    if 22 <= hour <= 1:
+
+    # Late night
+    if hour >= 22 or hour <= 1:
         return 1.4
+
     return 1.0
 
 
 def run_rider_simulator():
-    print("[INFO] Premium rider simulator started")
+    print("[INFO] Rider simulator started")
 
     while True:
         try:
             multiplier = current_multiplier()
             riders_to_add = int(BASE_RIDERS_PER_TICK * multiplier)
 
-            # random burst events
+            # Random spikes
             if random.random() < 0.08:
-                riders_to_add += random.randint(20, 60)
+                riders_to_add += random.randint(8, 20)
 
             for _ in range(riders_to_add):
                 rider_id = str(uuid.uuid4())
@@ -57,12 +62,16 @@ def run_rider_simulator():
                         "timestamp": time.time()
                     }
                 )
-                redis_client.expire(f"rider:{rider_id}", TTL_SECONDS)
+
+                redis_client.expire(
+                    f"rider:{rider_id}",
+                    TTL_SECONDS
+                )
 
             time.sleep(TICK_SECONDS)
 
         except Exception as e:
-            print("Premium rider simulator error:", e)
+            print("Rider simulator error:", e)
             time.sleep(2)
 
 

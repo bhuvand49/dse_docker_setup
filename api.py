@@ -20,7 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-RESOLUTION = 8
+RESOLUTION = 7
 
 # Bengaluru city boundary
 BENGALURU_BOUNDARY = [
@@ -266,4 +266,4 @@ def scenario():
 def scenario_update(payload: dict = Body(...)):
     state["rain"] = int(payload.get("rain", 0))
     state["event"] = int(payload.get("event", 0))
-    return state
+    return statef

@@ -9,23 +9,10 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background: #020617;
-}
-#map {
-  width: 100%;
-  height: 100%;
-}
-.leaflet-control-attribution {
-  background: rgba(15,23,42,.7);
-  color: white;
-}
+html, body { margin:0; padding:0; height:100%; background:#020617; }
+#map { width:100%; height:100%; }
 </style>
 </head>
-
 <body>
 <div id="map"></div>
 
@@ -34,88 +21,96 @@ const API =
   new URLSearchParams(location.search).get("api") ||
   "https://dynamic-surge-pricing-engine-backend.onrender.com";
 
-const map = L.map("map", { zoomControl: true })
-  .setView([12.9716, 77.5946], 11);
+const map = L.map("map").setView([12.9716,77.5946],11);
 
 L.tileLayer(
-  "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-  { maxZoom: 18 }
+ "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+ { maxZoom:18 }
 ).addTo(map);
 
-let surgeLayers = [];
+let hexLayers = [];
 let driverMarkers = [];
 let riderMarkers = [];
 
-function zoneColor(v){
-  if(v >= 3) return "#ef4444";
-  if(v >= 2) return "#f97316";
-  if(v >= 1.4) return "#facc15";
+function clear(arr){
+  arr.forEach(x => map.removeLayer(x));
+  arr.length = 0;
+}
+
+function zoneColor(item){
+  const riders = Number(item.riders || 0);
+  const drivers = Number(item.drivers || 0);
+  const surge = Number(item.surge_multiplier || 1);
+  const pressure = riders - drivers;
+
+  if (pressure >= 8 || surge >= 3) return "#ef4444";
+  if (pressure >= 4 || surge >= 2) return "#f97316";
+  if (pressure >= 1 || surge > 1.1) return "#facc15";
   return "#22c55e";
 }
 
-function clearLayers(arr){
-  arr.forEach(layer => map.removeLayer(layer));
-  arr.length = 0;
+function zoneOpacity(item){
+  return (item.riders > 0 || item.drivers > 0) ? 0.42 : 0.18;
 }
 
 async function refreshMap(){
   try{
-    const [surgeRes, driverRes, riderRes] = await Promise.all([
+    const [a,b,c] = await Promise.all([
       fetch(`${API}/surge/all`),
       fetch(`${API}/drivers`),
       fetch(`${API}/riders`)
     ]);
 
-    const surge = await surgeRes.json();
-    const drivers = await driverRes.json();
-    const riders = await riderRes.json();
+    const surge = await a.json();
+    const drivers = await b.json();
+    const riders = await c.json();
 
-    clearLayers(surgeLayers);
-    clearLayers(driverMarkers);
-    clearLayers(riderMarkers);
+    clear(hexLayers);
+    clear(driverMarkers);
+    clear(riderMarkers);
 
-    surge.forEach(item => {
-      item.polygons.forEach(poly => {
-        const layer = L.polygon(poly, {
-          color: zoneColor(item.surge_multiplier),
-          fillColor: zoneColor(item.surge_multiplier),
-          fillOpacity: 0.28,
+    surge.forEach(item=>{
+      if(!item.polygons) return;
+
+      item.polygons.forEach(poly=>{
+        const layer = L.polygon(poly,{
+          color: zoneColor(item),
+          fillColor: zoneColor(item),
+          fillOpacity: zoneOpacity(item),
           weight: 1
         }).addTo(map);
 
-        surgeLayers.push(layer);
+        hexLayers.push(layer);
       });
     });
 
-    drivers.forEach(d => {
-      const marker = L.circleMarker([d.lat, d.lon], {
-        radius: 2.5,
-        color: "#3b82f6",
-        fillColor: "#3b82f6",
-        fillOpacity: 0.85
+    drivers.forEach(d=>{
+      const m = L.circleMarker([d.lat,d.lon],{
+        radius:2.5,
+        color:"#3b82f6",
+        fillColor:"#3b82f6",
+        fillOpacity:0.9
       }).addTo(map);
-
-      driverMarkers.push(marker);
+      driverMarkers.push(m);
     });
 
-    riders.forEach(r => {
-      const marker = L.circleMarker([r.lat, r.lon], {
-        radius: 2.5,
-        color: "#a855f7",
-        fillColor: "#a855f7",
-        fillOpacity: 0.85
+    riders.forEach(r=>{
+      const m = L.circleMarker([r.lat,r.lon],{
+        radius:2.5,
+        color:"#a855f7",
+        fillColor:"#a855f7",
+        fillOpacity:0.9
       }).addTo(map);
-
-      riderMarkers.push(marker);
+      riderMarkers.push(m);
     });
 
-  } catch(err){
-    console.log("Map error:", err);
+  }catch(e){
+    console.error(e);
   }
 }
 
 refreshMap();
-setInterval(refreshMap, 8000);
+setInterval(refreshMap,8000);
 </script>
 </body>
 </html>
